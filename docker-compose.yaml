@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: askrepo-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-askrepo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (copy .env.example)}
+      POSTGRES_DB: ${POSTGRES_DB:-askrepo}
+    ports:
+      - "5432:5432"
+    volumes:
+      - askrepo_pg_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql.ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-askrepo} -d ${POSTGRES_DB:-askrepo}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+volumes:
+  askrepo_pg_data:
+    
+    
