@@ -18,7 +18,7 @@ public record RepositoryResponse(
     String htmlUrl,
     String description,
     IndexStatus indexStatus,
-    Instant createdAt,
+    Instant indexedAt,
     int chunkCount,
     int filesTotal,
     int filesProcessed,
