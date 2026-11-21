@@ -21,10 +21,20 @@ export type Repository = {
     htmlUrl: string,
     description: string | null,
     indexStatus: IndexStatus,
-    createdAt: string,
+    indexedAt: string | null,
     chunkCount: number,
     filesTotal: number,
     filesProcessed: number,
+    errorMessage: string | null
+}
+
+export type IndexStatusResponse = {
+    repoId: string,
+    indexStatus: IndexStatus,
+    filesTotal: number,
+    filesProcessed: number,
+    chunkCount: number,
+    indexedAt: string | null,
     errorMessage: string | null
 }
 
@@ -84,5 +94,9 @@ export const api = {
         /** refresh=false reads the cached list; refresh=true syncs from GitHub first. */
         list: (refresh = false) =>
             apiFetch<Repository[]>(`/api/repos?refresh=${refresh}`),
+        index: (id: string) =>
+            apiFetch<Repository>(`/api/repos/${id}/index`, { method: "POST" }),
+        status: (id: string) =>
+            apiFetch<IndexStatusResponse>(`/api/repos/${id}/status`),
     },
 }
