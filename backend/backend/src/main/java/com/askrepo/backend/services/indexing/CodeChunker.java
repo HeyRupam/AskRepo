@@ -45,8 +45,8 @@ public class CodeChunker {
     private static Map<String, Object> baseMetaData(String repoId, String filePath, String language) {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put(RagSettings.METADATA_REPO_ID, repoId);
-        metadata.put("filepath", filePath);
-        metadata.put("language", language);
+        metadata.put(RagSettings.METADATA_FILE_PATH, filePath);
+        metadata.put(RagSettings.METADATA_LANGUAGE, language);
         return metadata;
     }
 
@@ -59,9 +59,9 @@ public class CodeChunker {
     ){
         Map<String, Object> metadata = new HashMap<>(chunk.getMetadata());
         metadata.put(RagSettings.METADATA_REPO_ID, repoId);
-        metadata.put("filepath", filePath);
-        metadata.put("language", language);
-        metadata.put("chunkIndex", chunkIndex);
+        metadata.put(RagSettings.METADATA_FILE_PATH, filePath);
+        metadata.put(RagSettings.METADATA_LANGUAGE, language);
+        metadata.put(RagSettings.METADATA_CHUNK_INDEX, chunkIndex);
 
         return new Document(chunk.getText(), metadata);
     }
