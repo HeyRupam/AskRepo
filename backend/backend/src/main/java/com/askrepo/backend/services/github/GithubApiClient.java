@@ -1,6 +1,5 @@
 package com.askrepo.backend.services.github;
 
-
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -17,13 +16,10 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GithubApiClient {
-
     private static final String API_BASE = "https://api.github.com";
     private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST_MAP=new ParameterizedTypeReference<List<Map<String,Object>>>(){
-
     };
     private static final ParameterizedTypeReference<Map<String, Object>> MAP=new ParameterizedTypeReference<Map<String,Object>>(){
-
     };
 
     private final RestClient.Builder restClinentBuilder;
@@ -60,19 +56,30 @@ public class GithubApiClient {
         return client(accessToken)
             .get()
             .uri(uriBuilder -> uriBuilder
-                .path("/repos/{owner}/{repo}/get/trees/{branch}?recursive=1")
+                .path("/repos/{owner}/{repo}/git/trees/{branch}")
+                .queryParam("recursive", 1)
                 .build(owner, repo, branch))
             .retrieve()
             .body(MAP);
     }
 
     public String getFileContent(String accessToken, String owner, String repo, String path, String ref){
+        String[] segments = path.split("/");
+        StringBuilder template = new StringBuilder("/repos/{owner}/{repo}/contents");
+        Object[] vars = new Object[segments.length + 2];
+        vars[0] = owner;
+        vars[1] = repo;
+        for (int i = 0; i < segments.length; i++) {
+            template.append("/{s").append(i).append('}');
+            vars[i + 2] = segments[i];
+        }
+
         Map<String, Object> result = client(accessToken)
             .get()
             .uri(uriBuilder -> uriBuilder
-                .path("/repos/{owner}/{repo}/contents/{path}")
+                .path(template.toString())
                 .queryParam("ref", ref)
-                .build(owner, repo, path))
+                .build(vars))
             .retrieve()
             .body(MAP);
         if(result == null || !result.containsKey("content")){
@@ -91,7 +98,7 @@ public class GithubApiClient {
     }
 
     private RestClient client(String accessToken){
-        return restClinentBuilder
+        return restClinentBuilder.clone()
             .baseUrl(API_BASE)
             .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
             .defaultHeader(HttpHeaders.ACCEPT, "application/vnd.github+json")

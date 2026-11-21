@@ -1,5 +1,7 @@
 package com.askrepo.backend.exceptions;
 
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -8,15 +10,22 @@ import org.springframework.web.context.request.WebRequest;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler({ NotFoundException.class, UnauthorizedException.class, BadRequestException.class })
+    @ExceptionHandler({ NotFoundException.class, UnauthorizedException.class, BadRequestException.class,
+            ConflictException.class })
     public ResponseEntity<?> handleException(RuntimeException ex, WebRequest request) {
+        HttpStatus status;
         if (ex instanceof NotFoundException) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+            status = HttpStatus.NOT_FOUND;
         } else if (ex instanceof UnauthorizedException) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+            status = HttpStatus.UNAUTHORIZED;
         } else if (ex instanceof BadRequestException) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+            status = HttpStatus.BAD_REQUEST;
+        } else if (ex instanceof ConflictException) {
+            status = HttpStatus.CONFLICT;
+        } else {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
+        String message = ex.getMessage() != null ? ex.getMessage() : status.getReasonPhrase();
+        return ResponseEntity.status(status).body(Map.of("message", message));
     }
 }
