@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   CircleAlert,
   Database,
@@ -7,6 +8,7 @@ import {
   GitBranch,
   Loader2,
   Lock,
+  MessageSquare,
   RotateCw,
   Sparkles,
 } from "lucide-react";
@@ -153,6 +155,16 @@ export function RepoCard({ repo }: { repo: Repository }) {
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {repo.indexStatus === "READY" && (
+              <Button
+                size="xs"
+                nativeButton={false}
+                render={<Link href={`/dashboard/repositories/${repo.id}/chat`} />}
+              >
+                <MessageSquare />
+                Chat
+              </Button>
+            )}
             <IndexButton repo={repo} />
             <a
               href={repo.htmlUrl}

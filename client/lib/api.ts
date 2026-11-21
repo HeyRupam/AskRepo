@@ -99,4 +99,125 @@ export const api = {
         status: (id: string) =>
             apiFetch<IndexStatusResponse>(`/api/repos/${id}/status`),
     },
+    chat: {
+        sessions: (repoId: string) =>
+            apiFetch<ChatSession[]>(`/api/repos/${repoId}/chat/sessions`),
+        messages: (sessionId: string) =>
+            apiFetch<ChatMessage[]>(`/api/chat/sessions/${sessionId}/messages`),
+        rename: (sessionId: string, title: string) =>
+            apiFetch<ChatSession>(`/api/chat/sessions/${sessionId}`, {
+                method: "PATCH",
+                body: JSON.stringify({ title }),
+            }),
+        remove: (sessionId: string) =>
+            apiFetch<void>(`/api/chat/sessions/${sessionId}`, { method: "DELETE" }),
+    },
+}
+
+export type SourceRef = {
+    filePath: string,
+    chunkIndex: number,
+    language: string,
+    score: number,
+    preview: string
+}
+
+export type ChatSession = {
+    id: string,
+    repositoryId: string,
+    title: string,
+    createdAt: string,
+    updatedAt: string
+}
+
+export type ChatRole = "USER" | "ASSISTANT"
+
+export type ChatMessage = {
+    id: string,
+    sessionId: string,
+    role: ChatRole,
+    content: string,
+    sources: SourceRef[],
+    createdAt: string
+}
+
+export type ChatStreamHandlers = {
+    onMeta?: (meta: { sessionId: string, sessionTitle: string, userMessageId: string, sources: SourceRef[] }) => void,
+    onToken?: (content: string) => void,
+    onDone?: (done: { messageId: string }) => void,
+    onError?: (message: string) => void,
+}
+
+export async function streamChat(
+    repoId: string,
+    body: { sessionId?: string | null, question: string },
+    handlers: ChatStreamHandlers,
+    signal?: AbortSignal,
+): Promise<void> {
+    const res = await fetch(`${getApiBaseUrl()}/api/repos/${repoId}/chat/stream`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "text/event-stream, application/json",
+        },
+        body: JSON.stringify(body),
+        signal,
+    });
+
+    if (!res.ok) {
+        throw new ApiError(res.status, await parseError(res));
+    }
+    if (!res.body) {
+        throw new ApiError(500, "Streaming is not supported by this browser");
+    }
+
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = "";
+
+    const dispatch = (block: string) => {
+        let event = "message";
+        const data: string[] = [];
+        for (const line of block.split("\n")) {
+            if (line.startsWith("event:")) {
+                event = line.slice(6).trim();
+            } else if (line.startsWith("data:")) {
+                const value = line.slice(5);
+                data.push(value.startsWith(" ") ? value.slice(1) : value);
+            }
+        }
+        if (data.length === 0) return;
+        let payload: Record<string, unknown>;
+        try {
+            payload = JSON.parse(data.join("\n"));
+        } catch {
+            return;
+        }
+        switch (event) {
+            case "meta":
+                handlers.onMeta?.(payload as Parameters<NonNullable<ChatStreamHandlers["onMeta"]>>[0]);
+                break;
+            case "token":
+                handlers.onToken?.(String(payload.content ?? ""));
+                break;
+            case "done":
+                handlers.onDone?.(payload as { messageId: string });
+                break;
+            case "error":
+                handlers.onError?.(String(payload.message ?? "Something went wrong"));
+                break;
+        }
+    };
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value.replace(/\r\n/g, "\n");
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
+            dispatch(buffer.slice(0, sep));
+            buffer = buffer.slice(sep + 2);
+        }
+    }
+    if (buffer.trim()) dispatch(buffer);
 }
