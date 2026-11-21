@@ -214,3 +214,22 @@
   white-space: nowrap;
   padding: 0 0.75rem;
 }
+
+.chat-streaming > div > :last-child::after {
+  content: "▍";
+  margin-left: 1px;
+  color: var(--primary);
+  animation: chatCaret 1s steps(2, start) infinite;
+}
+
+@keyframes chatCaret {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-streaming > div > :last-child::after {
+    animation: none;
+  }
+}
