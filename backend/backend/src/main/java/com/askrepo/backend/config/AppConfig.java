@@ -2,6 +2,7 @@ package com.askrepo.backend.config;
 
 import java.util.concurrent.Executor;
 
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -25,5 +26,21 @@ public class AppConfig {
         executor.setThreadNamePrefix("index-");
         executor.initialize();
         return executor;
+    }
+
+    @Bean (name = "chatExecutor")
+    Executor chatExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(16);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("chat-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean
+    ChatClient chatClient(ChatClient.Builder builder) {
+        return builder.build();
     }
 }
